@@ -6,8 +6,16 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onStart }: LandingPageProps) {
+  const handleUpgradePro = () => {
+    window.location.href = "https://buy.stripe.com/test_aFa4gA6Ir1tacHMdHQe7m00";
+  };
+
+  const handleUpgradePremium = () => {
+    window.location.href = "https://buy.stripe.com/test_fZueVe7Mv3Bi6jo0V4e7m01";
+  };
+
   return (
-    <div className="min-h-screen bg-navy-900 text-white overflow-hidden">
+    <div className="min-h-screen bg-navy-900 text-white overflow-hidden scroll-smooth">
       {/* Background Effects */}
       <div className="fixed inset-0 z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-neon/10 blur-[120px] rounded-full animate-pulse" />
@@ -26,7 +34,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <a href="#features" className="hover:text-cyan-neon transition-colors">Recursos</a>
           <a href="#token" className="hover:text-cyan-neon transition-colors">Token AG</a>
-          <a href="#pricing" className="hover:text-cyan-neon transition-colors">Preços</a>
+          <a href="#planos" className="hover:text-cyan-neon transition-colors">Preços</a>
         </div>
         <button 
           onClick={onStart}
@@ -68,16 +76,6 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 Ver Documentação
               </button>
             </div>
-            <div className="mt-12 flex items-center gap-6">
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <img key={i} src={`https://picsum.photos/seed/${i}/100`} className="w-10 h-10 rounded-full border-2 border-navy-900" alt="User" />
-                ))}
-              </div>
-              <p className="text-sm text-gray-500">
-                <span className="text-white font-bold">+2,500</span> traders já utilizam a Ariel.
-              </p>
-            </div>
           </motion.div>
 
           <motion.div
@@ -86,15 +84,15 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             transition={{ duration: 1, delay: 0.2 }}
             className="relative"
           >
-            <div className="glass-card p-4 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-neon/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="glass-card p-4 relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-neon/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
               <img 
-                src="https://picsum.photos/seed/crypto-dashboard/1200/800" 
+                src="https://i.postimg.cc/mgKKNm2Q/Chat-GPT-Image-1-04-2026-23-40-07.png" 
                 alt="Dashboard Preview" 
                 className="rounded-lg shadow-2xl relative z-10"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute -bottom-6 -left-6 glass-card p-6 border-cyan-neon/30 neon-glow z-20 animate-bounce delay-700">
+              <div className="absolute bottom-4 left-4 glass-card p-6 border-cyan-neon/30 neon-glow z-20 animate-bounce delay-700">
                 <div className="flex items-center gap-3 mb-2">
                   <TrendingUp className="w-5 h-5 text-green-400" />
                   <span className="text-sm font-bold">Sinal de Compra: PEPE</span>
@@ -189,7 +187,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <div className="relative w-64 h-64 lg:w-80 lg:h-80">
                 <div className="absolute inset-0 bg-cyan-neon/20 blur-[60px] rounded-full animate-pulse" />
                 <img 
-                  src="https://picsum.photos/seed/ag-token/800/800" 
+                  src="https://i.postimg.cc/43TBxqxL/Chat-GPT-Image-1-04-2026-23-43-07.png" 
                   alt="AG Token" 
                   className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_50px_rgba(0,243,255,0.5)]"
                   referrerPolicy="no-referrer"
@@ -197,6 +195,112 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="planos" className="relative z-10 max-w-7xl mx-auto px-6 py-32 scroll-mt-20">
+        <div className="text-center mb-20">
+          <h2 className="text-4xl font-display font-bold mb-4">Planos e Assinaturas</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            Escolha o plano ideal para o seu perfil de trading e comece a lucrar com inteligência.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {/* FREE Plan */}
+          <motion.div
+            whileHover={{ y: -10 }}
+            className="glass-card p-10 border-white/5 flex flex-col"
+          >
+            <h3 className="text-2xl font-bold mb-2">Ariel Analytics FREE</h3>
+            <div className="flex items-baseline gap-1 mb-8">
+              <span className="text-4xl font-display font-bold">Gratuito</span>
+            </div>
+            <ul className="space-y-4 mb-10 flex-grow">
+              {[
+                "5 análises diárias",
+                "Acesso básico aos sinais",
+              ].map((benefit, i) => (
+                <li key={i} className="flex items-center gap-3 text-gray-300">
+                  <Zap className="w-4 h-4 text-cyan-neon" />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={onStart}
+              className="w-full py-4 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all"
+            >
+              Começar grátis
+            </button>
+          </motion.div>
+
+          {/* PRO Plan */}
+          <motion.div
+            whileHover={{ y: -10 }}
+            className="glass-card p-10 border-white/5 flex flex-col"
+          >
+            <h3 className="text-2xl font-bold mb-2">Ariel Analytics PRO</h3>
+            <div className="flex items-baseline gap-1 mb-8">
+              <span className="text-4xl font-display font-bold">R$ 9,90</span>
+              <span className="text-gray-500">/mês</span>
+            </div>
+            <ul className="space-y-4 mb-10 flex-grow">
+              {[
+                "50 análises diárias",
+                "Sinais avançados",
+                "Indicadores técnicos",
+                "Suporte prioritário"
+              ].map((benefit, i) => (
+                <li key={i} className="flex items-center gap-3 text-gray-300">
+                  <Zap className="w-4 h-4 text-cyan-neon" />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleUpgradePro}
+              className="w-full py-4 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-all"
+            >
+              Assinar PRO
+            </button>
+          </motion.div>
+
+          {/* PREMIUM Plan */}
+          <motion.div
+            whileHover={{ y: -10 }}
+            className="glass-card p-10 border-cyan-neon/30 relative flex flex-col bg-gradient-to-br from-navy-800 to-navy-900"
+          >
+            <div className="absolute top-4 right-4 px-3 py-1 bg-cyan-neon text-navy-900 text-[10px] font-bold rounded-full uppercase tracking-wider">
+              Mais Popular
+            </div>
+            <h3 className="text-2xl font-bold mb-2">Ariel Analytics PREMIUM</h3>
+            <div className="flex items-baseline gap-1 mb-8">
+              <span className="text-4xl font-display font-bold text-cyan-neon">R$ 19,90</span>
+              <span className="text-gray-500">/mês</span>
+            </div>
+            <ul className="space-y-4 mb-10 flex-grow">
+              {[
+                "200 análises diárias",
+                "Acesso antecipado a novos sinais",
+                "API personalizada",
+                "Gerente de conta dedicado",
+                "Acesso ao grupo VIP"
+              ].map((benefit, i) => (
+                <li key={i} className="flex items-center gap-3 text-gray-300">
+                  <Zap className="w-4 h-4 text-cyan-neon" />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleUpgradePremium}
+              className="w-full py-4 bg-cyan-neon text-navy-900 rounded-xl font-bold hover:shadow-[0_0_30px_rgba(0,243,255,0.4)] transition-all"
+            >
+              Assinar PREMIUM
+            </button>
+          </motion.div>
         </div>
       </section>
 
@@ -211,14 +315,6 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             <p className="text-gray-500 max-w-sm mb-8">
               A plataforma definitiva para inteligência cripto e análise de dados on-chain. Desenvolvido para traders que buscam a próxima grande oportunidade.
             </p>
-            <div className="flex gap-4">
-              {['Twitter', 'Telegram', 'Discord'].map((social) => (
-                <a key={social} href="#" className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center hover:bg-cyan-neon/10 hover:text-cyan-neon transition-all">
-                  <span className="sr-only">{social}</span>
-                  <div className="w-5 h-5 bg-current opacity-20 rounded-sm" />
-                </a>
-              ))}
-            </div>
           </div>
           <div>
             <h4 className="font-bold mb-6">Produto</h4>
@@ -226,7 +322,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <li><a href="#" className="hover:text-white transition-colors">Análise de Tokens</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Sinais em Tempo Real</a></li>
               <li><a href="#" className="hover:text-white transition-colors">API para Desenvolvedores</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Preços</a></li>
+              <li><a href="#planos" className="hover:text-white transition-colors">Preços</a></li>
             </ul>
           </div>
           <div>
