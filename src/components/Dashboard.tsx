@@ -123,21 +123,12 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
     }
   };
 
-  const handleUpgrade = async (plan: string) => {
-    try {
-      const idToken = await initialUser.getIdToken();
-      const response = await axios.post("/api/stripe/create-checkout-session", { plan }, {
-        headers: {
-          "Authorization": `Bearer ${idToken}`
-        }
-      });
-      if (response.data.url) {
-        window.location.href = response.data.url;
-      }
-    } catch (error) {
-      console.error("Upgrade failed", error);
-      alert("Erro ao iniciar checkout. Verifique se as chaves do Stripe estão configuradas.");
-    }
+  const handleUpgradePro = () => {
+    window.location.href = "https://buy.stripe.com/test_aFa4gA6Ir1tacHMdHQe7m00";
+  };
+
+  const handleUpgradePremium = () => {
+    window.location.href = "https://buy.stripe.com/test_fZueVe7Mv3Bi6jo0V4e7m01";
   };
 
   return (
@@ -505,7 +496,7 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                     ))}
                   </ul>
                   <button 
-                    onClick={() => handleUpgrade(plan.name)}
+                    onClick={plan.name === "PRO" ? handleUpgradePro : handleUpgradePremium}
                     className="w-full py-3 bg-cyan-neon text-navy-900 rounded-xl font-bold hover:bg-cyan-neon/90 transition-all"
                   >
                     Fazer Upgrade

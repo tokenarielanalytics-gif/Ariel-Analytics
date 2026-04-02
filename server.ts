@@ -3,7 +3,6 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
-import Stripe from "stripe";
 import admin from "firebase-admin";
 import fs from "fs";
 
@@ -23,65 +22,9 @@ if (fs.existsSync(configPath)) {
 
 const db = admin.apps.length ? admin.firestore() : null;
 
-const stripe = process.env.STRIPE_SECRET_KEY 
-  ? new Stripe(process.env.STRIPE_SECRET_KEY) 
-  : null;
-
 async function startServer() {
   const app = express();
   const PORT = 3000;
-
-  // Middleware for Stripe Webhook (must be before express.json())
-  app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    const sig = req.headers["stripe-signature"];
-    let event;
-
-    try {
-      if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) throw new Error("Stripe not configured");
-      event = stripe.webhooks.constructEvent(req.body, sig as string, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err: any) {
-      console.error(`Webhook Error: ${err.message}`);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    if (!db) return res.status(500).send("Database not initialized");
-
-    // Handle events
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.userId;
-        const plan = session.metadata?.plan;
-
-        if (userId && plan) {
-          await db.collection('users').doc(userId).update({
-            plan: plan,
-            stripeCustomerId: session.customer as string,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          console.log(`User ${userId} upgraded to ${plan}`);
-        }
-        break;
-      }
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
-        
-        const userSnapshot = await db.collection('users').where('stripeCustomerId', '==', customerId).get();
-        if (!userSnapshot.empty) {
-          const userDoc = userSnapshot.docs[0];
-          await userDoc.ref.update({
-            plan: 'FREE',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-          console.log(`User ${userDoc.id} subscription canceled`);
-        }
-        break;
-      }
-    }
-    
-    res.json({ received: true });
-  });
 
   app.use(express.json());
 
@@ -105,40 +48,6 @@ async function startServer() {
   // API Routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
-  });
-
-  // Stripe Checkout
-  app.post("/api/stripe/create-checkout-session", authenticate, async (req: any, res) => {
-    if (!stripe) return res.status(500).json({ error: "Stripe not configured" });
-    
-    const { plan } = req.body;
-    const userId = req.user.uid;
-
-    const prices: any = {
-      PRO: process.env.STRIPE_PRICE_PRO,
-      PREMIUM: process.env.STRIPE_PRICE_PREMIUM
-    };
-
-    try {
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [{
-          price: prices[plan],
-          quantity: 1,
-        }],
-        mode: 'subscription',
-        success_url: `${req.headers.origin}/dashboard?success=true`,
-        cancel_url: `${req.headers.origin}/dashboard?canceled=true`,
-        metadata: {
-          userId,
-          plan
-        }
-      });
-
-      res.json({ url: session.url });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
   });
 
   // Crypto API Proxy Routes
