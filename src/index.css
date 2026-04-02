@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Orbitron", sans-serif;
+  
+  --color-navy-900: #0a0b1e;
+  --color-navy-800: #121432;
+  --color-cyan-neon: #00f3ff;
+  --color-purple-neon: #bc13fe;
+}
+
+@layer base {
+  body {
+    @apply bg-navy-900 text-white font-sans antialiased;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl;
+  }
+  
+  .neon-glow {
+    @apply shadow-[0_0_15px_rgba(0,243,255,0.3)];
+  }
+  
+  .neon-text {
+    @apply text-cyan-neon drop-shadow-[0_0_8px_rgba(0,243,255,0.5)];
+  }
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap');

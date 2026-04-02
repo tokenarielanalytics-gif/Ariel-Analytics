@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and subscription data",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string", "format": "uri" },
+        "plan": { "type": "string", "enum": ["FREE", "PRO", "PREMIUM"] },
+        "analysesCount": { "type": "integer" },
+        "lastAnalysisDate": { "type": "string", "format": "date-time" },
+        "stripeCustomerId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] }
+      },
+      "required": ["uid", "email", "plan", "analysesCount"]
+    },
+    "Analysis": {
+      "title": "Analysis",
+      "description": "Historical analysis logs for users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "symbol": { "type": "string" },
+        "score": { "type": "integer" },
+        "signal": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "symbol", "score", "signal", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile data"
+    },
+    "/users/{userId}/history/{analysisId}": {
+      "schema": "Analysis",
+      "description": "User analysis history"
+    }
+  }
+}

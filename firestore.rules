@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - User's unique ID
+    //   - email: string (required) - User's email address
+    //   - displayName: string (optional) - User's display name
+    //   - photoURL: string (optional) - User's photo URL
+    //   - plan: string (required, enum: ['FREE', 'PRO', 'PREMIUM']) - User's subscription plan
+    //   - analysesCount: number (required) - Number of analyses performed
+    //   - lastAnalysisDate: string (optional, format: date-time) - Last analysis timestamp
+    //   - stripeCustomerId: string (optional) - Stripe customer ID
+    //   - role: string (optional, enum: ['user', 'admin']) - User's role
+    //
+    // Collection: users/{userId}/history
+    // Document ID: {analysisId}
+    // Fields:
+    //   - id: string (required) - Analysis ID
+    //   - userId: string (required) - User's unique ID
+    //   - symbol: string (required) - Token symbol
+    //   - score: number (required) - Analysis score
+    //   - signal: string (required) - Analysis signal
+    //   - timestamp: string (required, format: date-time) - Analysis timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "tokenarielanalytics@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'plan', 'analysesCount']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 128 &&
+             data.email is string && data.email.size() < 256 && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.plan in ['FREE', 'PRO', 'PREMIUM'] &&
+             data.analysesCount is number && data.analysesCount >= 0 &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() < 512)) &&
+             (!('role' in data) || data.role in ['user', 'admin']);
+    }
+
+    function isValidAnalysis(data) {
+      return data.keys().hasAll(['id', 'userId', 'symbol', 'score', 'signal', 'timestamp']) &&
+             data.id is string && data.id.size() < 128 &&
+             data.userId is string && data.userId.size() < 128 &&
+             data.symbol is string && data.symbol.size() > 0 && data.symbol.size() < 20 &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.signal is string && data.signal.size() > 0 && data.signal.size() < 20 &&
+             data.timestamp is string && data.timestamp.size() < 64;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      
+      allow create: if isAuthenticated() && 
+                      isOwner(userId) && 
+                      isValidUser(request.resource.data) &&
+                      request.resource.data.role == 'user'; // Default role is user
+      
+      allow update: if isAuthenticated() && 
+                      isValidUser(request.resource.data) &&
+                      (
+                        (isOwner(userId) && 
+                         request.resource.data.role == resource.data.role && // Cannot change own role
+                         request.resource.data.plan == resource.data.plan) // Cannot change own plan (handled by backend/stripe)
+                        || isAdmin()
+                      );
+      
+      allow delete: if isAdmin();
+
+      match /history/{analysisId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidAnalysis(request.resource.data);
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
