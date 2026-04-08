@@ -1,19 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Search, TrendingUp, BarChart3, Shield, Zap, LogOut, User, Settings, CreditCard, Loader2 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { Search, TrendingUp, BarChart3, Shield, Zap, LogOut, User, Settings, CreditCard, Loader2, CheckCircle2, AlertCircle, TrendingDown } from "lucide-react";
 import axios from "axios";
-import { db, onSnapshot, doc, collection, setDoc, OperationType, handleFirestoreError } from "../firebase";
-
-const mockData = [
-  { name: "00:00", price: 0.00012 },
-  { name: "04:00", price: 0.00015 },
-  { name: "08:00", price: 0.00014 },
-  { name: "12:00", price: 0.00018 },
-  { name: "16:00", price: 0.00022 },
-  { name: "20:00", price: 0.00020 },
-  { name: "23:59", price: 0.00025 },
-];
+import { db, onSnapshot, doc, collection, setDoc, OperationType, handleFirestoreError, auth } from "../firebase";
+import CustomChart from "./CustomChart";
 
 export default function Dashboard({ user: initialUser, onLogout }: { user: any; onLogout: () => void }) {
   const [user, setUser] = useState(initialUser);
@@ -21,17 +11,14 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
   const [activeTab, setActiveTab] = useState("analysis");
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [newSignal, setNewSignal] = useState<any>(null);
 
-  const [signals, setSignals] = useState([
-    { symbol: "PEPE", name: "Pepe", price: 0.000012, score: 92, signal: "BUY", timestamp: new Date().toLocaleTimeString() },
-    { symbol: "WIF", name: "Dogwifhat", price: 2.45, score: 78, signal: "BUY", timestamp: new Date().toLocaleTimeString() },
-    { symbol: "BONK", name: "Bonk", price: 0.000025, score: 45, signal: "RISKY", timestamp: new Date().toLocaleTimeString() },
-    { symbol: "FLOKI", name: "Floki", price: 0.00018, score: 32, signal: "SELL", timestamp: new Date().toLocaleTimeString() },
-  ]);
+  const [signals, setSignals] = useState<any[]>([]);
+  const [signalsError, setSignalsError] = useState<string | null>(null);
 
-  // Real-time user profile listener
+  // Real-time user profile listener (REAL)
   useEffect(() => {
     if (!user?.uid) return;
     const unsubscribe = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
@@ -44,43 +31,49 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
     return () => unsubscribe();
   }, [user?.uid]);
 
+  // Fetch real signals (REAL)
+  useEffect(() => {
+    const fetchSignals = async () => {
+      try {
+        const response = await axios.get("/api/crypto/signals");
+        setSignals(response.data);
+        setSignalsError(null);
+      } catch (error) {
+        console.error("Failed to fetch signals", error);
+        setSignalsError("Erro ao carregar sinais. Tentando novamente...");
+      }
+    };
+    fetchSignals();
+    const interval = setInterval(fetchSignals, 30000); // Update every 30s
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
-      if (activeTab === "signals") {
-        setSignals(prev => [
-          {
-            symbol: ["SOL", "DOGE", "SHIB", "LINK"][Math.floor(Math.random() * 4)],
-            name: "New Signal",
-            price: Math.random() * 100,
-            score: Math.floor(Math.random() * 100),
-            signal: Math.random() > 0.5 ? "BUY" : "RISKY",
-            timestamp: new Date().toLocaleTimeString()
-          },
-          ...prev.slice(0, 9)
-        ]);
-      } else {
-        const signal = {
-          symbol: ["SOL", "DOGE", "SHIB", "LINK"][Math.floor(Math.random() * 4)],
-          score: Math.floor(Math.random() * 100),
-          signal: Math.random() > 0.5 ? "BUY" : "RISKY",
-        };
-        if (signal.score > 80) {
+      if (activeTab !== "signals") {
+        const signal = signals[Math.floor(Math.random() * signals.length)];
+        if (signal && signal.score > 80) {
           setNewSignal(signal);
           setTimeout(() => setNewSignal(null), 5000);
         }
       }
-    }, 10000);
+    }, 15000);
     return () => clearInterval(interval);
-  }, [activeTab]);
+  }, [activeTab, signals]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!search) return;
+  const handleSearch = async (e?: React.FormEvent, symbolOverride?: string) => {
+    if (e) e.preventDefault();
+    const targetSearch = symbolOverride || search;
+    if (!targetSearch) return;
     
     setLoading(true);
+    setError(null);
+    setActiveTab("analysis");
     try {
-      const idToken = await initialUser.getIdToken();
-      const response = await axios.get(`/api/crypto/analyze?symbol=${search}`, {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error("Usuário não autenticado");
+      
+      const response = await axios.get(`/api/crypto/analyze?symbol=${targetSearch}`, {
         headers: {
           "Authorization": `Bearer ${idToken}`
         }
@@ -88,7 +81,7 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
       
       const analysisData = response.data;
       setAnalysis(analysisData);
-      setHistory(prev => [search.toUpperCase(), ...prev.filter(s => s !== search.toUpperCase()).slice(0, 4)]);
+      setHistory(prev => [targetSearch.toUpperCase(), ...prev.filter(s => s !== targetSearch.toUpperCase()).slice(0, 4)]);
 
       // Save to Firestore history and update usage
       const analysisId = Math.random().toString(36).substring(7);
@@ -98,9 +91,9 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
         await setDoc(doc(db, "users", user.uid, "history", analysisId), {
           id: analysisId,
           userId: user.uid,
-          symbol: analysisData.symbol,
-          score: analysisData.score,
-          signal: analysisData.signal,
+          symbol: analysisData.symbol || search.toUpperCase() || "UNKNOWN",
+          score: analysisData.score || 0,
+          signal: analysisData.signal || "NEUTRAL",
           timestamp: new Date().toISOString()
         });
 
@@ -114,10 +107,14 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
 
     } catch (error: any) {
       if (error.response?.status === 403) {
-        alert("Limite de uso atingido para o seu plano!");
+        setError("Limite de uso atingido para o seu plano!");
+      } else if (error.response?.status === 404) {
+        setError(error.response.data.detail || "Token não encontrado ou sem histórico OHLC.");
       } else {
+        setError("Erro ao analisar token. Tente novamente mais tarde.");
         console.error("Analysis failed", error);
       }
+      setAnalysis(null);
     } finally {
       setLoading(false);
     }
@@ -152,7 +149,7 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
             onClick={() => {
               setSearch(newSignal.symbol);
               setActiveTab("analysis");
-              handleSearch({ preventDefault: () => {} } as any);
+              handleSearch(undefined, newSignal.symbol);
               setNewSignal(null);
             }}
             className="px-3 py-1 bg-cyan-neon text-navy-900 text-xs font-bold rounded-lg"
@@ -250,7 +247,7 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                     key={i} 
                     onClick={() => {
                       setSearch(s);
-                      handleSearch({ preventDefault: () => {} } as any);
+                      handleSearch(undefined, s);
                     }}
                     className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded hover:bg-white/10 transition-all"
                   >
@@ -272,39 +269,80 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
 
         {activeTab === "analysis" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Chart Section */}
-            <div className="lg:col-span-2 glass-card p-8">
+            {/* Error Message */}
+            {error && (
+              <div className="lg:col-span-3 p-4 bg-red-400/10 border border-red-400/20 rounded-xl flex items-center gap-3 text-red-400">
+                <AlertCircle className="w-5 h-5" />
+                <p className="text-sm font-bold">{error}</p>
+              </div>
+            )}
+
+            {loading && !analysis && (
+              <div className="lg:col-span-3 p-20 glass-card flex flex-col items-center justify-center gap-4 text-cyan-neon">
+                <Loader2 className="w-12 h-12 animate-spin" />
+                <p className="text-lg font-bold animate-pulse">Analisando mercado em tempo real...</p>
+                <p className="text-xs text-gray-500">Isso pode levar alguns segundos dependendo da liquidez do pool.</p>
+              </div>
+            )}
+
+            {/* Analysis Content */}
+            {!analysis && !loading ? (
+              <div className="lg:col-span-3 p-20 glass-card flex flex-col items-center justify-center gap-4 text-gray-500">
+                <Search className="w-12 h-12 opacity-20" />
+                <p className="text-lg font-bold">Nenhuma análise ativa</p>
+                <p className="text-sm">Busque por um token acima para iniciar a análise técnica em tempo real.</p>
+              </div>
+            ) : (
+              <>
+                {/* Chart Section */}
+                <div className="lg:col-span-2 glass-card p-8">
               <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold">{analysis ? analysis.name : "Análise de Mercado"}</h2>
-                  <p className="text-gray-400 text-sm">Preço em tempo real (USD)</p>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-cyan-neon/10 flex items-center justify-center text-cyan-neon font-bold text-xl">
+                    {analysis ? analysis.symbol[0] : "?"}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                      {analysis ? analysis.name : "Análise de Mercado"}
+                      {analysis?.isReal && (
+                        <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-green-400/10 text-green-400 border border-green-400/20 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Dados Reais ({analysis.source})
+                        </span>
+                      )}
+                    </h2>
+                    <p className="text-gray-400 text-sm">
+                      {analysis ? (
+                        <span className="flex items-center gap-2">
+                          {analysis.symbol}/USDT • {new Date(analysis.timestamp).toLocaleTimeString()}
+                          {analysis.metadata && (
+                            <span className="text-[10px] text-gray-600 border-l border-white/10 pl-2">
+                              {analysis.metadata.chainId.toUpperCase()} • {analysis.metadata.dexId}
+                            </span>
+                          )}
+                        </span>
+                      ) : "Selecione um token para análise técnica completa"}
+                    </p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="text-3xl font-display font-bold text-cyan-neon">
-                    ${analysis ? analysis.price.toFixed(6) : "0.00025"}
+                    ${analysis ? analysis.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 }) : "0.00"}
                   </p>
-                  <p className="text-green-400 text-sm">+12.5% (24h)</p>
+                  {analysis && (
+                    <div className={`flex items-center justify-end gap-1 text-sm ${analysis.momentum >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {analysis.momentum >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                      {analysis.momentum.toFixed(2)}% (24h)
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockData}>
-                    <defs>
-                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00f3ff" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#00f3ff" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                    <XAxis dataKey="name" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: "#121432", border: "1px solid #ffffff10", borderRadius: "12px" }}
-                      itemStyle={{ color: "#00f3ff" }}
-                    />
-                    <Area type="monotone" dataKey="price" stroke="#00f3ff" strokeWidth={3} fillOpacity={1} fill="url(#colorPrice)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div className="h-[450px] w-full">
+                <CustomChart 
+                  symbol={analysis?.symbol || "BTCUSDT"} 
+                  chainId={analysis?.metadata?.chainId}
+                  pairAddress={analysis?.metadata?.pairAddress}
+                />
               </div>
             </div>
 
@@ -315,14 +353,12 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                 <p className="text-xs text-gray-400 mb-6">
                   Holders do token AG terão acesso vitalício ao plano PREMIUM e recursos exclusivos de IA.
                 </p>
-                <a
-                  href="https://arielagente.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => window.open("https://pancakeswap.finance/swap?outputCurrency=0xf641fefb35147b73e6eea4da4b69f8a71b544776&chainId=56&inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "_blank")}
                   className="block w-full py-3 bg-cyan-neon text-navy-900 text-center rounded-xl font-bold hover:bg-cyan-neon/90 transition-all"
                 >
                   Comprar AG Agora
-                </a>
+                </button>
               </div>
 
               <div className="glass-card p-8 text-center">
@@ -348,53 +384,101 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                     <span className="text-3xl font-display font-bold">{analysis ? analysis.score : 85}</span>
                   </div>
                 </div>
+                <p className="text-[10px] text-gray-500 mb-4 uppercase tracking-widest">
+                  Baseado em RSI + MACD + Momentum
+                </p>
                 <div className={cn(
-                  "px-4 py-2 rounded-full font-bold text-sm",
+                  "px-4 py-2 rounded-full font-bold text-sm mb-4",
                   analysis?.signal === "BUY" ? "bg-green-400/10 text-green-400" :
                   analysis?.signal === "SELL" ? "bg-red-400/10 text-red-400" :
                   "bg-yellow-400/10 text-yellow-400"
                 )}>
-                  SINAL: {analysis ? analysis.signal : "BUY"}
+                  SINAL: {analysis ? (analysis.signal === "BUY" ? "COMPRA" : analysis.signal === "SELL" ? "VENDA" : "NEUTRO") : "COMPRA"}
                 </div>
+                
+                {analysis && (
+                  <div className="text-xs text-gray-400 bg-white/5 p-4 rounded-xl border border-white/5">
+                    <p className="font-bold text-cyan-neon mb-1 uppercase tracking-wider">Explicação do Sinal</p>
+                    <p>
+                      {analysis.signal === "BUY" && `Sinal de COMPRA identificado porque o RSI (${analysis.indicators.rsi.toFixed(0)}) indica ${analysis.indicators.rsi < 30 ? 'sobrevenda' : 'espaço para alta'} e o MACD (${analysis.indicators.macd.toFixed(4)}) mostra momentum ${analysis.indicators.macd > 0 ? 'positivo' : 'em recuperação'}.`}
+                      {analysis.signal === "SELL" && `Sinal de VENDA identificado porque o RSI (${analysis.indicators.rsi.toFixed(0)}) indica ${analysis.indicators.rsi > 70 ? 'sobrecompra' : 'fraqueza'} e o MACD (${analysis.indicators.macd.toFixed(4)}) mostra momentum ${analysis.indicators.macd < 0 ? 'negativo' : 'perdendo força'}.`}
+                      {analysis.signal === "NEUTRAL" && `Sinal NEUTRO. O mercado está lateralizado com RSI em ${analysis.indicators.rsi.toFixed(0)} e MACD estável em ${analysis.indicators.macd.toFixed(4)}.`}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="glass-card p-8">
                 <h3 className="text-gray-400 font-bold mb-6">INDICADORES TÉCNICOS</h3>
                 <div className="space-y-6">
                   {[
-                    { label: "RSI (14)", value: analysis?.indicators.rsi || 68, status: "Overbought" },
-                    { label: "MACD", value: analysis?.indicators.macd.toFixed(6) || 0.000012, status: "Bullish" },
-                    { label: "EMA (200)", value: analysis?.indicators.ema.toFixed(6) || 0.00018, status: "Support" },
+                    { label: "RSI (14)", value: analysis?.indicators.rsi.toFixed(2) || 68, status: analysis?.indicators.rsi > 70 ? "Sobrecomprado" : analysis?.indicators.rsi < 30 ? "Sobrevendido" : "Neutro" },
+                    { label: "MACD", value: analysis?.indicators.macd.toFixed(6) || 0.000012, status: analysis?.indicators.macd > 0 ? "Positivo" : "Negativo" },
+                    { 
+                      label: "Tendência", 
+                      value: analysis?.momentum > 2 ? "ALTA" : analysis?.momentum < -2 ? "BAIXA" : "LATERAL", 
+                      status: analysis?.momentum > 2 ? "Bullish" : analysis?.momentum < -2 ? "Bearish" : "Sideways" 
+                    },
+                    { label: "EMA (200)", value: analysis?.indicators.ema.toFixed(6) || 0.00018, status: "Trend" },
                   ].map((ind, i) => (
                     <div key={i} className="flex justify-between items-center">
                       <div>
                         <p className="text-sm font-bold">{ind.label}</p>
-                        <p className="text-xs text-gray-500">{ind.status}</p>
+                        <p className={cn(
+                          "text-xs font-bold",
+                          ind.status === "Overbought" || ind.status === "Bearish" ? "text-red-400" :
+                          ind.status === "Oversold" || ind.status === "Bullish" ? "text-green-400" :
+                          "text-gray-500"
+                        )}>{ind.status}</p>
                       </div>
                       <p className="font-mono text-cyan-neon">{ind.value}</p>
                     </div>
                   ))}
                 </div>
+                {analysis?.metadata && (
+                  <div className="mt-8 pt-6 border-t border-white/5 space-y-2">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-gray-500 uppercase">Liquidez</span>
+                      <span className="text-white font-mono">${analysis.metadata.liquidity.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-gray-500 uppercase">Volume 24h</span>
+                      <span className="text-white font-mono">${analysis.metadata.volume24h.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-gray-500 uppercase">Pool</span>
+                      <span className="text-white font-mono truncate max-w-[120px]">{analysis.metadata.pairAddress}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+          </>
+        )}
 
-            {/* Latest Tokens Section */}
+            {/* Latest Signals Section */}
             <div className="lg:col-span-3 glass-card p-8 mt-8">
-              <h3 className="text-xl font-bold mb-6">Novos Tokens Detectados (Dexscreener)</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold">Destaques do Mercado (CoinGecko)</h3>
+                <button onClick={() => setActiveTab("signals")} className="text-cyan-neon text-sm font-bold hover:underline">Ver Todos</button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  { symbol: "MOON", chain: "Solana", age: "2m", liquidity: "$45k" },
-                  { symbol: "AI", chain: "Base", age: "5m", liquidity: "$120k" },
-                  { symbol: "AG", chain: "Solana", age: "12m", liquidity: "$2.5M" },
-                  { symbol: "CAT", chain: "Ethereum", age: "15m", liquidity: "$80k" },
-                ].map((token, i) => (
-                  <div key={i} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-neon/30 transition-all cursor-pointer group">
+                {signals.slice(0, 4).map((token, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => {
+                      setSearch(token.symbol);
+                      setActiveTab("analysis");
+                      handleSearch(undefined, token.symbol);
+                    }}
+                    className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-neon/30 transition-all cursor-pointer group"
+                  >
                     <div className="flex justify-between items-center mb-3">
-                      <span className="text-xs font-bold text-cyan-neon bg-cyan-neon/10 px-2 py-1 rounded">{token.chain}</span>
-                      <span className="text-[10px] text-gray-500">{token.age} atrás</span>
+                      <span className="text-xs font-bold text-cyan-neon bg-cyan-neon/10 px-2 py-1 rounded">MARKET</span>
+                      <span className="text-[10px] text-gray-500">{token.timestamp}</span>
                     </div>
                     <h4 className="text-lg font-bold group-hover:text-cyan-neon transition-colors">{token.symbol}</h4>
-                    <p className="text-sm text-gray-400">Liquidez: {token.liquidity}</p>
+                    <p className={`text-sm font-bold ${token.score > 70 ? 'text-green-400' : 'text-yellow-400'}`}>Score: {token.score}</p>
                   </div>
                 ))}
               </div>
@@ -404,6 +488,12 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
 
         {activeTab === "signals" && (
           <div className="glass-card overflow-hidden">
+            {signalsError && (
+              <div className="p-4 bg-red-400/10 border-b border-red-400/20 flex items-center gap-3 text-red-400">
+                <AlertCircle className="w-4 h-4" />
+                <p className="text-xs font-bold">{signalsError}</p>
+              </div>
+            )}
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-white/5 bg-white/5">
@@ -452,7 +542,7 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                         onClick={() => {
                           setSearch(token.symbol);
                           setActiveTab("analysis");
-                          handleSearch({ preventDefault: () => {} } as any);
+                          handleSearch(undefined, token.symbol);
                         }}
                         className="text-cyan-neon hover:underline text-sm font-bold"
                       >

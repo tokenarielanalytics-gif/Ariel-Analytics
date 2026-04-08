@@ -72,7 +72,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               >
                 Começar Agora <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="px-8 py-4 bg-white/5 border border-white/10 rounded-xl font-bold text-lg hover:bg-white/10 transition-all">
+              <button 
+                onClick={() => window.open("https://drive.google.com/uc?export=download&id=1oE7Wvv2i9eJqK-G7wpH6qclYU76G-GdJ", "_blank")}
+                className="px-8 py-4 bg-white/5 border border-white/10 rounded-xl font-bold text-lg hover:bg-white/10 transition-all"
+              >
                 Ver Documentação
               </button>
             </div>
@@ -174,14 +177,12 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                   </li>
                 ))}
               </ul>
-              <a 
-                href="https://arielagente.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-block px-8 py-4 bg-cyan-neon text-navy-900 rounded-xl font-bold hover:shadow-[0_0_30px_rgba(0,243,255,0.4)] transition-all"
-              >
-                Comprar Token AG
-              </a>
+                <button 
+                  onClick={() => window.open("https://pancakeswap.finance/swap?outputCurrency=0xf641fefb35147b73e6eea4da4b69f8a71b544776&chainId=56&inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "_blank")}
+                  className="inline-block px-8 py-4 bg-cyan-neon text-navy-900 rounded-xl font-bold hover:shadow-[0_0_30px_rgba(0,243,255,0.4)] transition-all"
+                >
+                  Comprar Token AG
+                </button>
             </div>
             <div className="flex justify-center">
               <div className="relative w-64 h-64 lg:w-80 lg:h-80">

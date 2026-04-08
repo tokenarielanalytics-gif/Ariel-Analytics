@@ -1,7 +1,7 @@
 import { useState, useEffect, Component, ErrorInfo, ReactNode } from "react";
 import LandingPage from "./components/LandingPage";
 import Dashboard from "./components/Dashboard";
-import { auth, onAuthStateChanged, db, doc, getDoc, setDoc, signInWithPopup, googleProvider, signOut } from "./firebase";
+import { auth, onAuthStateChanged, db, doc, getDoc, setDoc, signInWithPopup, googleProvider, signOut, handleFirestoreError, OperationType } from "./firebase";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -65,12 +65,15 @@ export default function App() {
               analysesCount: 0,
               role: firebaseUser.email === "tokenarielanalytics@gmail.com" ? "admin" : "user"
             };
-            await setDoc(doc(db, "users", firebaseUser.uid), newUser);
-            setUser({ ...firebaseUser, ...newUser });
+            try {
+              await setDoc(doc(db, "users", firebaseUser.uid), newUser);
+              setUser({ ...firebaseUser, ...newUser });
+            } catch (createError) {
+              handleFirestoreError(createError, OperationType.WRITE, `users/${firebaseUser.uid}`);
+            }
           }
         } catch (error) {
-          console.error("Error fetching user data", error);
-          setUser(firebaseUser); // Fallback to basic auth user
+          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
         }
       } else {
         setUser(null);
