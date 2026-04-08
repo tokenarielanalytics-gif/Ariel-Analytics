@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { AlertCircle } from "lucide-react";
 import { 
   createChart, 
   ColorType, 
@@ -84,6 +85,7 @@ export default function CustomChart({ symbol, chainId, pairAddress }: CustomChar
   const [tooltip, setTooltip] = useState<TooltipData>({
     time: "", open: "", high: "", low: "", close: "", volume: "", visible: false
   });
+  const [dataError, setDataError] = useState(false);
 
   // 1. Initialize Chart (Once)
   useEffect(() => {
@@ -229,10 +231,12 @@ export default function CustomChart({ symbol, chainId, pairAddress }: CustomChar
       if (!chartApiRef.current || !candlestickSeriesRef.current || !volumeSeriesRef.current || !smaSeriesRef.current) return;
 
       if (!Array.isArray(rawData)) {
-        console.error("rawData is not an array", rawData);
+        console.error("Invalid data format (chart):", rawData);
+        setDataError(true);
         return;
       }
       
+      setDataError(false);
       const ohlcData = rawData.map((d: any) => ({
         time: d.time as Time,
         open: d.open,
@@ -304,9 +308,19 @@ export default function CustomChart({ symbol, chainId, pairAddress }: CustomChar
       {/* Chart Container */}
       <div 
         ref={chartContainerRef} 
-        className="w-full h-full"
+        className={`w-full h-full ${dataError ? 'opacity-0' : 'opacity-100'}`}
         style={{ minHeight: "450px" }}
       />
+
+      {dataError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#020617]/80 backdrop-blur-sm z-30">
+          <div className="text-center p-6">
+            <AlertCircle className="w-12 h-12 text-gray-500 mx-auto mb-4 opacity-20" />
+            <p className="text-gray-400 font-bold">Dados indisponíveis para este ativo</p>
+            <p className="text-xs text-gray-600 mt-2">Tente novamente em alguns instantes ou busque outro token.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

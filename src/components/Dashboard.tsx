@@ -240,22 +240,26 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                 <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-neon animate-spin" />
               )}
             </form>
-            {history.length > 0 && (
-              <div className="flex gap-2">
-                {history.map((s, i) => (
-                  <button 
-                    key={i} 
-                    onClick={() => {
-                      setSearch(s);
-                      handleSearch(undefined, s);
-                    }}
-                    className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded hover:bg-white/10 transition-all"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
+            {(() => {
+              const safeHistory = Array.isArray(history) ? history : [];
+              if (!Array.isArray(history)) console.error("Invalid data format (history):", history);
+              return safeHistory.length > 0 && (
+                <div className="flex gap-2">
+                  {safeHistory.map((s, i) => (
+                    <button 
+                      key={i} 
+                      onClick={() => {
+                        setSearch(s);
+                        handleSearch(undefined, s);
+                      }}
+                      className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded hover:bg-white/10 transition-all"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
           <div className="flex items-center gap-4">
             <div className="px-4 py-2 bg-purple-neon/10 border border-purple-neon/20 rounded-lg text-purple-neon text-sm font-bold">
@@ -463,24 +467,34 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                 <button onClick={() => setActiveTab("signals")} className="text-cyan-neon text-sm font-bold hover:underline">Ver Todos</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {signals.slice(0, 4).map((token, i) => (
-                  <div 
-                    key={i} 
-                    onClick={() => {
-                      setSearch(token.symbol);
-                      setActiveTab("analysis");
-                      handleSearch(undefined, token.symbol);
-                    }}
-                    className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-neon/30 transition-all cursor-pointer group"
-                  >
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-xs font-bold text-cyan-neon bg-cyan-neon/10 px-2 py-1 rounded">MARKET</span>
-                      <span className="text-[10px] text-gray-500">{token.timestamp}</span>
+                {(() => {
+                  const safeSignals = Array.isArray(signals) ? signals : [];
+                  if (!Array.isArray(signals)) {
+                    console.error("Invalid data format (signals):", signals);
+                    return <p className="text-gray-500 text-sm col-span-full text-center py-4">Dados indisponíveis para este ativo</p>;
+                  }
+                  if (safeSignals.length === 0) {
+                    return <p className="text-gray-500 text-sm col-span-full text-center py-4">Nenhum sinal disponível no momento</p>;
+                  }
+                  return safeSignals.slice(0, 4).map((token, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => {
+                        setSearch(token.symbol);
+                        setActiveTab("analysis");
+                        handleSearch(undefined, token.symbol);
+                      }}
+                      className="p-4 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-neon/30 transition-all cursor-pointer group"
+                    >
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-xs font-bold text-cyan-neon bg-cyan-neon/10 px-2 py-1 rounded">MARKET</span>
+                        <span className="text-[10px] text-gray-500">{token.timestamp}</span>
+                      </div>
+                      <h4 className="text-lg font-bold group-hover:text-cyan-neon transition-colors">{token.symbol}</h4>
+                      <p className={`text-sm font-bold ${token.score > 70 ? 'text-green-400' : 'text-yellow-400'}`}>Score: {token.score}</p>
                     </div>
-                    <h4 className="text-lg font-bold group-hover:text-cyan-neon transition-colors">{token.symbol}</h4>
-                    <p className={`text-sm font-bold ${token.score > 70 ? 'text-green-400' : 'text-yellow-400'}`}>Score: {token.score}</p>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </div>
           </div>
@@ -494,65 +508,77 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                 <p className="text-xs font-bold">{signalsError}</p>
               </div>
             )}
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-white/5 bg-white/5">
-                  <th className="p-6 font-bold">Token</th>
-                  <th className="p-6 font-bold">Preço</th>
-                  <th className="p-6 font-bold">Score</th>
-                  <th className="p-6 font-bold">Sinal</th>
-                  <th className="p-6 font-bold">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {signals.map((token, i) => (
-                  <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-all">
-                    <td className="p-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-cyan-neon/10 rounded-lg flex items-center justify-center text-xs font-bold text-cyan-neon">
-                          {token.symbol[0]}
-                        </div>
-                        <div>
-                          <p className="font-bold">{token.symbol}</p>
-                          <p className="text-xs text-gray-500">{token.timestamp}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-6 font-mono">${token.price.toFixed(6)}</td>
-                    <td className="p-6">
-                      <div className="flex items-center gap-2">
-                        <div className="w-12 bg-white/5 h-1.5 rounded-full overflow-hidden">
-                          <div className="bg-cyan-neon h-full" style={{ width: `${token.score}%` }} />
-                        </div>
-                        <span className="text-xs font-bold">{token.score}</span>
-                      </div>
-                    </td>
-                    <td className="p-6">
-                      <span className={cn(
-                        "px-3 py-1 rounded-full text-xs font-bold",
-                        token.signal === "BUY" ? "bg-green-400/10 text-green-400" :
-                        token.signal === "SELL" ? "bg-red-400/10 text-red-400" :
-                        "bg-yellow-400/10 text-yellow-400"
-                      )}>
-                        {token.signal}
-                      </span>
-                    </td>
-                    <td className="p-6">
-                      <button 
-                        onClick={() => {
-                          setSearch(token.symbol);
-                          setActiveTab("analysis");
-                          handleSearch(undefined, token.symbol);
-                        }}
-                        className="text-cyan-neon hover:underline text-sm font-bold"
-                      >
-                        Analisar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {(() => {
+              const safeSignals = Array.isArray(signals) ? signals : [];
+              if (!Array.isArray(signals)) {
+                console.error("Invalid data format (signals tab):", signals);
+                return <div className="p-20 text-center text-gray-500">Dados indisponíveis para este ativo</div>;
+              }
+              if (safeSignals.length === 0) {
+                return <div className="p-20 text-center text-gray-500">Nenhum sinal disponível no momento</div>;
+              }
+              return (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-white/5 bg-white/5">
+                      <th className="p-6 font-bold">Token</th>
+                      <th className="p-6 font-bold">Preço</th>
+                      <th className="p-6 font-bold">Score</th>
+                      <th className="p-6 font-bold">Sinal</th>
+                      <th className="p-6 font-bold">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {safeSignals.map((token, i) => (
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-all">
+                        <td className="p-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-cyan-neon/10 rounded-lg flex items-center justify-center text-xs font-bold text-cyan-neon">
+                              {token.symbol ? token.symbol[0] : "?"}
+                            </div>
+                            <div>
+                              <p className="font-bold">{token.symbol}</p>
+                              <p className="text-xs text-gray-500">{token.timestamp}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-6 font-mono">${token.price?.toFixed(6) || "0.00"}</td>
+                        <td className="p-6">
+                          <div className="flex items-center gap-2">
+                            <div className="w-12 bg-white/5 h-1.5 rounded-full overflow-hidden">
+                              <div className="bg-cyan-neon h-full" style={{ width: `${token.score}%` }} />
+                            </div>
+                            <span className="text-xs font-bold">{token.score}</span>
+                          </div>
+                        </td>
+                        <td className="p-6">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-xs font-bold",
+                            token.signal === "BUY" ? "bg-green-400/10 text-green-400" :
+                            token.signal === "SELL" ? "bg-red-400/10 text-red-400" :
+                            "bg-yellow-400/10 text-yellow-400"
+                          )}>
+                            {token.signal}
+                          </span>
+                        </td>
+                        <td className="p-6">
+                          <button 
+                            onClick={() => {
+                              setSearch(token.symbol);
+                              setActiveTab("analysis");
+                              handleSearch(undefined, token.symbol);
+                            }}
+                            className="text-cyan-neon hover:underline text-sm font-bold"
+                          >
+                            Analisar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
           </div>
         )}
 
