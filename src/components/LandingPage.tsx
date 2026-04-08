@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { TrendingUp, Shield, Zap, BarChart3, ArrowRight } from "lucide-react";
+import { PANCAKE_SWAP_URL, DOCUMENTATION_URL } from "../constants";
 
 interface LandingPageProps {
   onStart: () => void;
@@ -73,7 +74,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 Começar Agora <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <button 
-                onClick={() => window.open("https://drive.google.com/uc?export=download&id=1oE7Wvv2i9eJqK-G7wpH6qclYU76G-GdJ", "_blank")}
+                onClick={() => window.open(DOCUMENTATION_URL, "_blank")}
                 className="px-8 py-4 bg-white/5 border border-white/10 rounded-xl font-bold text-lg hover:bg-white/10 transition-all"
               >
                 Ver Documentação
@@ -178,7 +179,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 ))}
               </ul>
                 <button 
-                  onClick={() => window.open("https://pancakeswap.finance/swap?outputCurrency=0xf641fefb35147b73e6eea4da4b69f8a71b544776&chainId=56&inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "_blank")}
+                  onClick={() => window.open(PANCAKE_SWAP_URL, "_blank")}
                   className="inline-block px-8 py-4 bg-cyan-neon text-navy-900 rounded-xl font-bold hover:shadow-[0_0_30px_rgba(0,243,255,0.4)] transition-all"
                 >
                   Comprar Token AG

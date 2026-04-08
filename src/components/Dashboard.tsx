@@ -4,6 +4,7 @@ import { Search, TrendingUp, BarChart3, Shield, Zap, LogOut, User, Settings, Cre
 import axios from "axios";
 import { db, onSnapshot, doc, collection, setDoc, OperationType, handleFirestoreError, auth } from "../firebase";
 import CustomChart from "./CustomChart";
+import { PANCAKE_SWAP_URL } from "../constants";
 
 export default function Dashboard({ user: initialUser, onLogout }: { user: any; onLogout: () => void }) {
   const [user, setUser] = useState(initialUser);
@@ -195,14 +196,12 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
         <div className="p-4 bg-white/5 rounded-xl border border-white/10 mb-4">
           <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Powered by</p>
           <p className="text-sm font-display font-bold text-cyan-neon mb-3">Ariel Agente (AG)</p>
-          <a
-            href="https://arielagente.com"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => window.open(PANCAKE_SWAP_URL, "_blank")}
             className="block w-full py-2 bg-cyan-neon/10 text-cyan-neon text-center text-xs font-bold rounded-lg hover:bg-cyan-neon/20 transition-all"
           >
             Comprar Token AG
-          </a>
+          </button>
         </div>
 
         <div className="pt-6 border-t border-white/5 flex flex-col gap-4">
@@ -358,7 +357,7 @@ export default function Dashboard({ user: initialUser, onLogout }: { user: any; 
                   Holders do token AG terão acesso vitalício ao plano PREMIUM e recursos exclusivos de IA.
                 </p>
                 <button
-                  onClick={() => window.open("https://pancakeswap.finance/swap?outputCurrency=0xf641fefb35147b73e6eea4da4b69f8a71b544776&chainId=56&inputCurrency=0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "_blank")}
+                  onClick={() => window.open(PANCAKE_SWAP_URL, "_blank")}
                   className="block w-full py-3 bg-cyan-neon text-navy-900 text-center rounded-xl font-bold hover:bg-cyan-neon/90 transition-all"
                 >
                   Comprar AG Agora
